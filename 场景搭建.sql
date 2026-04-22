@@ -1,59 +1,65 @@
 -- =============================================
--- 电商订单系统 - 完整数据库脚本
--- 包含：DDL (建表) + DML (插入测试数据)
--- 数据库：PostgreSQL
+-- 电商订单系统
 -- =============================================
 
 -- ---------------------------------------------
 -- 第一部分：表结构定义 (DDL)
 -- ---------------------------------------------
-
 -- 1. 用户表
 CREATE TABLE users (
-    user_id       SERIAL PRIMARY KEY,
-    username      VARCHAR(50) NOT NULL UNIQUE,
-    email         VARCHAR(100) UNIQUE,
-    phone         CHAR(11),
-    register_date DATE DEFAULT CURRENT_DATE,
-    vip_level     INT DEFAULT 0
+    user_id       INT,                                    -- 用户ID，整数，主键，非空，自增
+    username      VARCHAR(50) NOT NULL,                   -- 用户名，变长字符串，非空
+    email         VARCHAR(100),                           -- 电子邮箱，变长字符串
+    phone         CHAR(11),                               -- 手机号码，定长11位
+    register_date DATE DEFAULT CURRENT_DATE,              -- 注册日期，默认当前日期
+    vip_level     INT DEFAULT 0,                          -- 会员等级，默认0
+    CONSTRAINT pk_users PRIMARY KEY (user_id),
+    CONSTRAINT uq_users_username UNIQUE (username),
+    CONSTRAINT uq_users_email UNIQUE (email)
 );
 
 -- 2. 商品表
 CREATE TABLE products (
-    product_id   SERIAL PRIMARY KEY,
-    product_name VARCHAR(100) NOT NULL,
-    category     VARCHAR(50),
-    price        DECIMAL(10, 2) NOT NULL,
-    stock        INT DEFAULT 0,
-    status       CHAR(1) DEFAULT 'A' CHECK (status IN ('A', 'I'))
+    product_id   INT,                                      -- 商品ID，整数，主键，非空，自增
+    product_name VARCHAR(100) NOT NULL,                    -- 商品名称，变长字符串，非空
+    category     VARCHAR(50),                              -- 商品分类，变长字符串
+    price        DECIMAL(10,2) NOT NULL,                   -- 单价，定点小数，非空
+    stock        INT DEFAULT 0,                            -- 库存数量，默认0
+    status       CHAR(1) DEFAULT 'A',                      -- 状态，单字符，默认'A'
+    CONSTRAINT pk_products PRIMARY KEY (product_id),
+    CONSTRAINT ck_products_status CHECK (status IN ('A', 'I'))
 );
 
 -- 3. 订单表
 CREATE TABLE orders (
-    order_id     SERIAL PRIMARY KEY,
-    user_id      INT NOT NULL,
-    order_date   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    total_amount DECIMAL(10, 2),
-    status       VARCHAR(20) DEFAULT '待支付',
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE RESTRICT
+    order_id     INT,                                      -- 订单ID，整数，主键，非空，自增
+    user_id      INT NOT NULL,                             -- 用户ID，整数，非空，外键
+    order_date   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,      -- 下单时间，时间戳，默认当前时间
+    total_amount DECIMAL(10,2),                            -- 订单总金额，定点小数
+    status       VARCHAR(20) DEFAULT '待支付',              -- 订单状态，默认“待支付”
+    CONSTRAINT pk_orders PRIMARY KEY (order_id),
+    CONSTRAINT fk_orders_user FOREIGN KEY (user_id) 
+        REFERENCES users(user_id) ON DELETE RESTRICT
 );
 
 -- 4. 订单明细表
 CREATE TABLE order_items (
-    item_id    SERIAL PRIMARY KEY,
-    order_id   INT NOT NULL,
-    product_id INT NOT NULL,
-    quantity   INT NOT NULL,
-    unit_price DECIMAL(10, 2) NOT NULL,
-    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE RESTRICT
+    item_id     INT,                                       -- 明细ID，整数，主键，非空，自增
+    order_id    INT NOT NULL,                              -- 订单ID，整数，非空，外键
+    product_id  INT NOT NULL,                              -- 商品ID，整数，非空，外键
+    quantity    INT NOT NULL,                              -- 购买数量，整数，非空
+    unit_price  DECIMAL(10,2) NOT NULL,                    -- 下单时单价，定点小数，非空
+    CONSTRAINT pk_order_items PRIMARY KEY (item_id),
+    CONSTRAINT fk_order_items_order FOREIGN KEY (order_id)
+        REFERENCES orders(order_id) ON DELETE CASCADE,
+    CONSTRAINT fk_order_items_product FOREIGN KEY (product_id)
+        REFERENCES products(product_id) ON DELETE RESTRICT
 );
 
 -- ---------------------------------------------
 -- 第二部分：测试数据插入 (DML)
 -- 注意插入顺序：users / products → orders → order_items
 -- ---------------------------------------------
-
 -- 2.1 插入用户数据 (20条)
 INSERT INTO users (user_id, username, email, phone, register_date, vip_level) VALUES
 (1,  'zhang_wei',      'zhang.wei@mail.com',      '13800138001', '2024-01-15', 1),
@@ -145,12 +151,3 @@ INSERT INTO order_items (item_id, order_id, product_id, quantity, unit_price) VA
 (18, 12, 5,  2, 89.90),
 (19, 12, 14, 2, 129.00),
 (20, 12, 11, 1, 59.00);
-
--- =============================================
--- 脚本结束
--- 你可以执行以下查询验证数据：
--- SELECT * FROM users;
--- SELECT * FROM products;
--- SELECT * FROM orders;
--- SELECT * FROM order_items;
--- =============================================
